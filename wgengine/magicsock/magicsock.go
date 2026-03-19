@@ -69,7 +69,7 @@ import (
 	"tailscale.com/util/usermetric"
 	"tailscale.com/wgengine/filter"
 	"tailscale.com/wgengine/router"
-	"tailscale.com/wgengine/wgint"
+	"tailscale.com/wgengine/wgdevice"
 )
 
 const (
@@ -391,7 +391,7 @@ type Conn struct {
 
 	// getPeerByKey optionally specifies a function to look up a peer's
 	// wireguard state by its public key. If nil, it's not used.
-	getPeerByKey func(key.NodePublic) (_ wgint.Peer, ok bool)
+	getPeerByKey func(key.NodePublic) (_ wgdevice.PeerHandle, ok bool)
 
 	// lastErrRebind tracks the last time a rebind was performed after
 	// experiencing a write error, and is used to throttle the rate of rebinds.
@@ -491,7 +491,7 @@ type Options struct {
 	// PeerByKeyFunc optionally specifies a function to look up a peer's
 	// WireGuard state by its public key. If nil, it's not used.
 	// In regular use, this will be wgengine.(*userspaceEngine).PeerByKey.
-	PeerByKeyFunc func(key.NodePublic) (_ wgint.Peer, ok bool)
+	PeerByKeyFunc func(key.NodePublic) (_ wgdevice.PeerHandle, ok bool)
 
 	// DisablePortMapper, if true, disables the portmapper.
 	// This is primarily useful in tests.

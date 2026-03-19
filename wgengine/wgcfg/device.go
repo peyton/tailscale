@@ -8,20 +8,13 @@ import (
 	"io"
 	"sort"
 
-	"github.com/tailscale/wireguard-go/conn"
-	"github.com/tailscale/wireguard-go/device"
-	"github.com/tailscale/wireguard-go/tun"
 	"tailscale.com/types/logger"
+	"tailscale.com/wgengine/wgdevice"
 )
 
-// NewDevice returns a wireguard-go Device configured for Tailscale use.
-func NewDevice(tunDev tun.Device, bind conn.Bind, logger *device.Logger) *device.Device {
-	ret := device.NewDevice(tunDev, bind, logger)
-	ret.DisableSomeRoamingForBrokenMobileSemantics()
-	return ret
-}
-
-func DeviceConfig(d *device.Device) (*Config, error) {
+// DeviceConfig reads the current configuration from a WireGuard device
+// in UAPI format. Works with both wireguard-go and gotatun backends.
+func DeviceConfig(d wgdevice.Device) (*Config, error) {
 	r, w := io.Pipe()
 	errc := make(chan error, 1)
 	go func() {
@@ -42,7 +35,8 @@ func DeviceConfig(d *device.Device) (*Config, error) {
 }
 
 // ReconfigDevice replaces the existing device configuration with cfg.
-func ReconfigDevice(d *device.Device, cfg *Config, logf logger.Logf) (err error) {
+// Works with both wireguard-go and gotatun backends via the UAPI protocol.
+func ReconfigDevice(d wgdevice.Device, cfg *Config, logf logger.Logf) (err error) {
 	defer func() {
 		if err != nil {
 			logf("wgcfg.Reconfig failed: %v", err)

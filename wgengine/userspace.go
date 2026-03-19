@@ -20,7 +20,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/tailscale/wireguard-go/device"
 	"github.com/tailscale/wireguard-go/tun"
 	"tailscale.com/control/controlknobs"
 	"tailscale.com/drive"
@@ -64,7 +63,7 @@ import (
 	"tailscale.com/wgengine/netstack/gro"
 	"tailscale.com/wgengine/router"
 	"tailscale.com/wgengine/wgcfg"
-	"tailscale.com/wgengine/wgint"
+	"tailscale.com/wgengine/wgdevice"
 	"tailscale.com/wgengine/wglog"
 )
 
@@ -87,9 +86,19 @@ const (
 	packetSendRecheckWireguardThreshold = 1 * time.Minute
 )
 
-// statusPollInterval is how often we ask wireguard-go for its engine
+// statusPollInterval is how often we ask the WireGuard backend for its engine
 // status (as long as there's activity). See docs on its use below.
 const statusPollInterval = 1 * time.Minute
+
+// POWER OPTIMIZATION: statusPollIntervalIdle is a longer interval used on
+// mobile devices when the tunnel has been idle for a sustained period.
+// Each status poll wakes the CPU to query all peer statistics from the
+// WireGuard backend. On iOS, where the network extension runs in a
+// memory/CPU-constrained sandbox, reducing poll frequency during idle
+// periods avoids unnecessary wake-ups and saves battery. We extend from
+// 1 minute to 5 minutes when idle, reducing wake-ups by 80% during
+// background operation.
+const statusPollIntervalIdle = 5 * time.Minute
 
 // networkLoggerUploadTimeout is the maximum timeout to wait when
 // shutting down the network logger as it uploads the last network log messages.
@@ -108,7 +117,7 @@ type userspaceEngine struct {
 	waitCh         chan struct{} // chan is closed when first Close call completes; contrast with closing bool
 	timeNow        func() mono.Time
 	tundev         *tstun.Wrapper
-	wgdev          *device.Device
+	wgdev          wgdevice.Device
 	router         router.Router
 	dialer         *tsdial.Dialer
 	confListenPort uint16 // original conf.ListenPort
@@ -518,8 +527,7 @@ func NewUserspaceEngine(logf logger.Logf, conf Config) (_ Engine, reterr error) 
 	}
 
 	// wgdev takes ownership of tundev, will close it when closed.
-	e.logf("Creating WireGuard device...")
-	e.wgdev = wgcfg.NewDevice(e.tundev, e.magicConn.Bind(), e.wgLogger.DeviceLogger)
+	e.wgdev = createWireGuardDevice(e, e.wgLogger)
 	closePool.addFunc(e.wgdev.Close)
 	closePool.addFunc(func() {
 		if err := e.magicConn.Close(); err != nil {
@@ -747,7 +755,16 @@ func (e *userspaceEngine) noteRecvActivity(nk key.NodePublic) {
 	// This particularly matters on platforms without a connected GUI, as
 	// the GUIs generally poll this enough to cause that logging. But
 	// tailscaled alone did not, hence this.
-	if e.lastStatusPollTime.IsZero() || now.Sub(e.lastStatusPollTime) >= statusPollInterval {
+	//
+	// POWER OPTIMIZATION: On mobile, use a longer poll interval when the
+	// tunnel is idle to reduce CPU wake-ups and save battery.
+	pollInterval := statusPollInterval
+	if version.IsMobile() {
+		if idleDur := e.tundev.IdleDuration(); idleDur > 2*time.Minute {
+			pollInterval = statusPollIntervalIdle
+		}
+	}
+	if e.lastStatusPollTime.IsZero() || now.Sub(e.lastStatusPollTime) >= pollInterval {
 		e.lastStatusPollTime = now
 		go e.RequestStatus()
 	}
@@ -1270,24 +1287,24 @@ func (e *userspaceEngine) getStatusCallback() StatusCallback {
 
 var ErrEngineClosing = errors.New("engine closing; no status")
 
-func (e *userspaceEngine) PeerByKey(pubKey key.NodePublic) (_ wgint.Peer, ok bool) {
+func (e *userspaceEngine) PeerByKey(pubKey key.NodePublic) (_ wgdevice.PeerHandle, ok bool) {
 	e.wgLock.Lock()
 	dev := e.wgdev
 	e.wgLock.Unlock()
 
 	if dev == nil {
-		return wgint.Peer{}, false
+		return nil, false
 	}
-	peer := dev.LookupPeer(pubKey.Raw32())
+	peer := dev.LookupPeer(pubKey)
 	if peer == nil {
-		return wgint.Peer{}, false
+		return nil, false
 	}
-	return wgint.PeerOf(peer), true
+	return peer, true
 }
 
 func (e *userspaceEngine) getPeerStatusLite(pk key.NodePublic) (status ipnstate.PeerStatusLite, ok bool) {
 	peer, ok := e.PeerByKey(pk)
-	if !ok {
+	if !ok || peer == nil {
 		return status, false
 	}
 	status.NodeKey = pk

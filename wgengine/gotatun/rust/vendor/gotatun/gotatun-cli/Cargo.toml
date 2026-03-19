@@ -1,0 +1,35 @@
+[package]
+name = "gotatun-cli"
+version = "0.5.0"
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+description = "an implementation of the WireGuard® protocol designed for portability and speed"
+readme.workspace = true
+repository.workspace = true
+license.workspace = true
+keywords = ["vpn", "wireguard"]
+categories = ["command-line-utilities", "network-programming"]
+
+[[bin]]
+name = "gotatun"
+path = "src/main.rs"
+
+[target.'cfg(unix)'.dependencies]
+clap = { workspace = true, features = ["derive", "env"] }
+daemonize = { workspace = true }
+eyre = { workspace = true }
+gotatun = { workspace = true, features = ["device", "tun"] }
+libc = { workspace = true }
+nix = { workspace = true, default-features = false, features = [
+  "fs",
+  "net",
+  "socket",
+  "time",
+  "uio",
+  "user",
+] }
+tokio = { workspace = true, features = ["full"] }
+tracing = { workspace = true }
+tracing-appender = { workspace = true }
+tracing-subscriber = { workspace = true }

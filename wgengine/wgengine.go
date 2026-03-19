@@ -18,7 +18,7 @@ import (
 	"tailscale.com/wgengine/filter"
 	"tailscale.com/wgengine/router"
 	"tailscale.com/wgengine/wgcfg"
-	"tailscale.com/wgengine/wgint"
+	"tailscale.com/wgengine/wgdevice"
 )
 
 // Status is the Engine status.
@@ -103,7 +103,7 @@ type Engine interface {
 
 	// PeerByKey returns the WireGuard status of the provided peer.
 	// If the peer is not found, ok is false.
-	PeerByKey(key.NodePublic) (_ wgint.Peer, ok bool)
+	PeerByKey(key.NodePublic) (_ wgdevice.PeerHandle, ok bool)
 
 	// Close shuts down this wireguard instance, remove any routes
 	// it added, etc. To bring it up again later, you'll need a

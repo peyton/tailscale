@@ -19,6 +19,7 @@ import (
 	"github.com/tailscale/wireguard-go/tun"
 	"go4.org/mem"
 	"tailscale.com/types/key"
+	"tailscale.com/wgengine/wgdevice"
 )
 
 func TestDeviceConfig(t *testing.T) {
@@ -53,12 +54,12 @@ func TestDeviceConfig(t *testing.T) {
 		}},
 	}
 
-	device1 := NewDevice(newNilTun(), new(noopBind), device.NewLogger(device.LogLevelError, "device1"))
-	device2 := NewDevice(newNilTun(), new(noopBind), device.NewLogger(device.LogLevelError, "device2"))
+	device1 := wgdevice.NewWireGuardGoDevice(newNilTun(), new(noopBind), device.NewLogger(device.LogLevelError, "device1"))
+	device2 := wgdevice.NewWireGuardGoDevice(newNilTun(), new(noopBind), device.NewLogger(device.LogLevelError, "device2"))
 	defer device1.Close()
 	defer device2.Close()
 
-	cmp := func(t *testing.T, d *device.Device, want *Config) {
+	cmp := func(t *testing.T, d wgdevice.Device, want *Config) {
 		t.Helper()
 		got, err := DeviceConfig(d)
 		if err != nil {

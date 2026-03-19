@@ -1,0 +1,23 @@
+[package]
+name = "gotatun-ffi"
+version = "0.1.0"
+edition = "2021"
+description = "C FFI bindings for gotatun WireGuard implementation, for use by Tailscale via CGo"
+
+[lib]
+name = "gotatun_ffi"
+crate-type = ["staticlib"]
+
+[dependencies]
+gotatun = { path = "vendor/gotatun/gotatun" }
+tokio = { version = "1", features = ["rt-multi-thread", "sync", "time", "macros"] }
+libc = "0.2"
+parking_lot = "0.12"
+log = "0.4"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+# Strip debug info for smaller binary size, important for iOS memory constraints
+strip = true

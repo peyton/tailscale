@@ -19,7 +19,7 @@ type FeatureTag string
 // omitted via a ts_omit_ build tag.
 func (ft FeatureTag) IsOmittable() bool {
 	switch ft {
-	case CLI:
+	case CLI, "gotatun":
 		return false
 	}
 	return true
@@ -160,6 +160,10 @@ var Features = map[FeatureTag]FeatureMeta{
 	"desktop_sessions": {Sym: "DesktopSessions", Desc: "Desktop sessions support"},
 	"doctor":           {Sym: "Doctor", Desc: "Diagnose possible issues with Tailscale and its host environment"},
 	"drive":            {Sym: "Drive", Desc: "Tailscale Drive (file server) support"},
+	"gotatun": {
+		Sym:  "Gotatun",
+		Desc: "Use gotatun (Rust) WireGuard implementation instead of wireguard-go",
+	},
 	"gro": {
 		Sym:  "GRO",
 		Desc: "Generic Receive Offload support (performance)",

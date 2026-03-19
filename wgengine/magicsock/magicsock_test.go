@@ -76,6 +76,7 @@ import (
 	"tailscale.com/wgengine/filter"
 	"tailscale.com/wgengine/filter/filtertype"
 	"tailscale.com/wgengine/wgcfg"
+	"tailscale.com/wgengine/wgdevice"
 	"tailscale.com/wgengine/wgcfg/nmcfg"
 	"tailscale.com/wgengine/wglog"
 )
@@ -163,7 +164,7 @@ type magicStack struct {
 	conn       *Conn                         // the magicsock itself
 	tun        *tuntest.ChannelTUN           // TUN device to send/receive packets
 	tsTun      *tstun.Wrapper                // wrapped tun that implements filtering and wgengine hooks
-	dev        *device.Device                // the wireguard-go Device that connects the previous things
+	dev        wgdevice.Device                // the WireGuard device (wireguard-go or gotatun) that connects the previous things
 	wgLogger   *wglog.Logger                 // wireguard-go log wrapper
 	netMon     *netmon.Monitor               // always non-nil
 	metrics    *usermetric.Registry
@@ -216,7 +217,7 @@ func newMagicStackWithKey(t testing.TB, logf logger.Logf, ln nettype.PacketListe
 	tsTun.Start()
 
 	wgLogger := wglog.NewLogger(logf)
-	dev := wgcfg.NewDevice(tsTun, conn.Bind(), wgLogger.DeviceLogger)
+	dev := wgdevice.NewWireGuardGoDevice(tsTun, conn.Bind(), wgLogger.DeviceLogger)
 	dev.Up()
 
 	// Wait for magicsock to connect up to DERP.
@@ -613,7 +614,7 @@ func TestDeviceStartStop(t *testing.T) {
 
 	tun := tuntest.NewChannelTUN()
 	wgLogger := wglog.NewLogger(t.Logf)
-	dev := wgcfg.NewDevice(tun.TUN(), conn.Bind(), wgLogger.DeviceLogger)
+	dev := wgdevice.NewWireGuardGoDevice(tun.TUN(), conn.Bind(), wgLogger.DeviceLogger)
 	dev.Up()
 	dev.Close()
 }
@@ -2220,7 +2221,7 @@ func newWireguard(t *testing.T, uapi string, aips []netip.Prefix) (*device.Devic
 		Verbosef: func(string, ...any) {},
 		Errorf:   wglogf,
 	}
-	wgdev := wgcfg.NewDevice(wgtun.TUN(), wgconn.NewDefaultBind(), &wglog)
+	wgdev := device.NewDevice(wgtun.TUN(), wgconn.NewDefaultBind(), &wglog)
 
 	if err := wgdev.IpcSet(uapi); err != nil {
 		t.Fatal(err)

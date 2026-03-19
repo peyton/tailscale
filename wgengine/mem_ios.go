@@ -3,18 +3,10 @@
 
 package wgengine
 
-import (
-	"github.com/tailscale/wireguard-go/device"
-)
-
-// iOS has a very restrictive memory limit on network extensions.
-// Reduce the maximum amount of memory that wireguard-go can allocate
-// to avoid getting killed.
-
+// iOS has a very restrictive memory limit on network extensions (~50MB).
+// Reduce the maximum amount of memory that the WireGuard backend can
+// allocate to avoid getting killed. For wireguard-go, this sets device
+// queue sizes. For gotatun, queue sizing is handled via GotatunConfig.
 func init() {
-	device.QueueStagedSize = 64
-	device.QueueOutboundSize = 64
-	device.QueueInboundSize = 64
-	device.QueueHandshakeSize = 64
-	device.PreallocatedBuffersPerPool = 64
+	setIOSQueueSizes()
 }

@@ -48,7 +48,7 @@ import (
 	"tailscale.com/wgengine/magicsock"
 	"tailscale.com/wgengine/router"
 	"tailscale.com/wgengine/wgcfg"
-	"tailscale.com/wgengine/wgint"
+	"tailscale.com/wgengine/wgdevice"
 )
 
 // notifyThrottler receives notifications from an ipn.Backend, blocking
@@ -1995,8 +1995,8 @@ func (e *mockEngine) ResetAndStop() (*wgengine.Status, error) {
 	return &wgengine.Status{AsOf: time.Now()}, nil
 }
 
-func (e *mockEngine) PeerByKey(key.NodePublic) (_ wgint.Peer, ok bool) {
-	return wgint.Peer{}, false
+func (e *mockEngine) PeerByKey(key.NodePublic) (_ wgdevice.PeerHandle, ok bool) {
+	return nil, false
 }
 
 func (e *mockEngine) SetNetworkMap(*netmap.NetworkMap) {}

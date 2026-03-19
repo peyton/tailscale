@@ -26,7 +26,7 @@ import (
 	"tailscale.com/wgengine/filter"
 	"tailscale.com/wgengine/router"
 	"tailscale.com/wgengine/wgcfg"
-	"tailscale.com/wgengine/wgint"
+	"tailscale.com/wgengine/wgdevice"
 )
 
 type watchdogEvent string
@@ -239,6 +239,6 @@ func (e *watchdogEngine) InstallCaptureHook(cb packet.CaptureCallback) {
 	e.wrap.InstallCaptureHook(cb)
 }
 
-func (e *watchdogEngine) PeerByKey(pubKey key.NodePublic) (_ wgint.Peer, ok bool) {
+func (e *watchdogEngine) PeerByKey(pubKey key.NodePublic) (_ wgdevice.PeerHandle, ok bool) {
 	return e.wrap.PeerByKey(pubKey)
 }
